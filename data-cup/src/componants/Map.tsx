@@ -5,7 +5,8 @@ import { MapContainer, Marker, Popup, TileLayer, GeoJSON } from 'react-leaflet';
 
 export default function Map() {
 
-    const apiUrl = 'https://data.tco.re/api/explore/v2.1/catalog/datasets/signalements_depots_sauvages_citoyennes_10_2024/records?limit=100&offset=100';
+    let offset: string = "100";
+    let apiUrl = 'https://data.tco.re/api/explore/v2.1/catalog/datasets/signalements_depots_sauvages_citoyennes_10_2024/records?limit=100&offset=' + offset;
 
     const getData = async () => {
         try {
@@ -14,6 +15,16 @@ export default function Map() {
                 throw new Error('Network response was not ok');
             }
             const data = await response.json();
+            while (data.results.length === 100) {
+                offset = (parseInt(offset) + 100).toString();
+                apiUrl = 'https://data.tco.re/api/explore/v2.1/catalog/datasets/signalements_depots_sauvages_citoyennes_10_2024/records?limit=100&offset=' + offset;
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const newData = await response.json();
+                data.results = data.results.concat(newData.results);
+            };
             return data;
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -54,9 +65,7 @@ export default function Map() {
 
     var greenIcon = L.icon({
         iconUrl: 'marker.png',
-        iconSize: [38, 95],
-        iconAnchor: [22, 94],
-        popupAnchor: [-3, -76]
+        iconSize: [35, 50],
     });
 
     const markers :any[] = [];
@@ -76,7 +85,7 @@ export default function Map() {
     }
 
     return (
-        <MapContainer center={[-21.1151, 55.5364]} style={{ height: "100vh" }} zoom={13} scrollWheelZoom={true}>
+        <MapContainer center={[-21.1151, 55.5364]} style={{ height: "100vh" }} zoom={10} scrollWheelZoom={true}>
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
