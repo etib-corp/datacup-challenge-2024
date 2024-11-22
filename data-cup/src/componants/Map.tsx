@@ -35,6 +35,7 @@ export default function Map() {
     useEffect(() => {
         const fetchData = async () => {
             const data = await getData();
+            console.log(data);
             const geoJson = convertToGeoJSON(data);
             if (data) {
                 setGeoJsonData(geoJson);
