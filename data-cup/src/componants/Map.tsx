@@ -55,7 +55,7 @@ export default function Map() {
     useEffect(() => {
         const fetchData = async () => {
             const data = await getData();
-            console.log(data);
+            //console.log(data);
             const geoJson = convertToGeoJSON(data);
             if (data) {
                 setGeoJsonData(geoJson);
@@ -73,18 +73,6 @@ export default function Map() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {geoJsonData && <GeoJSON data={geoJsonData} />}
-            {markers.length > 0 && <MarkerClusterGroup
-            chunkedLoading
-            iconCreateFunction={createClusterCustomIcon}>
-                {markers.map((marker) => (
-                    console.log(marker),
-                    <Marker key={marker.index} position={[marker.lat, marker.lng]} icon={customIcon}>
-                        <Popup>
-                            <span>{marker.name}</span>
-                        </Popup>
-                    </Marker>
-                ))}
-            </MarkerClusterGroup>}
         </MapContainer>
     );
 }
