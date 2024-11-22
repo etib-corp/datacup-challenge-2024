@@ -30,7 +30,8 @@ export default function Map() {
                     type: "Feature",
                     geometry: {
                         type: "Point",
-                        coordinates: [item.geom.lon, item.geom.lat]
+                        coordinates: [item.geom.lon, item.geom.lat],
+                        image_name: item.image_name,
                     },
                 };
             })
@@ -58,6 +59,22 @@ export default function Map() {
         popupAnchor: [-3, -76]
     });
 
+    const markers :any[] = [];
+
+    if (geoJsonData) {
+        geoJsonData.features.forEach((feature: any, index: number) => {
+            if (feature.geometry.type === 'Point') {
+                console.log('Feature:');
+                const [lng, lat] = feature.geometry.coordinates;
+                markers.push(
+                    <Marker key={index} position={[lat, lng]} icon={greenIcon}>
+                        <Popup>{feature.geometry.image_name}</Popup>
+                    </Marker>
+                );
+            }
+        });
+    }
+
     return (
         <MapContainer center={[-21.1151, 55.5364]} style={{ height: "100vh" }} zoom={13} scrollWheelZoom={true}>
             <TileLayer
@@ -65,6 +82,7 @@ export default function Map() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {geoJsonData && <GeoJSON data={geoJsonData} />}
+            {markers}
         </MapContainer>
     );
 }
