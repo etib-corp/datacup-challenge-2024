@@ -9,16 +9,16 @@ export const getData = async () => {
         }
         const data = await response.json();
         console.log('Data fetched:', data.results.length, data.total_count);
-        while (data.results.length != (data.total_count - 100)) {
-            offset = (parseInt(offset) + 100).toString();
-            apiUrl = 'https://data.tco.re/api/explore/v2.1/catalog/datasets/signalements_depots_sauvages_citoyennes_10_2024/records?limit=100&offset=' + offset;
-            const response = await fetch(apiUrl);
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            const newData = await response.json();
-            data.results = data.results.concat(newData.results);
-        };
+        // while (data.results.length != (data.total_count - 100)) {
+        //     offset = (parseInt(offset) + 100).toString();
+        //     apiUrl = 'https://data.tco.re/api/explore/v2.1/catalog/datasets/signalements_depots_sauvages_citoyennes_10_2024/records?limit=100&offset=' + offset;
+        //     const response = await fetch(apiUrl);
+        //     if (!response.ok) {
+        //         throw new Error('Network response was not ok');
+        //     }
+        //     const newData = await response.json();
+        //     data.results = data.results.concat(newData.results);
+        // };
         return data;
     } catch (error) {
         console.error('Error fetching data:', error);

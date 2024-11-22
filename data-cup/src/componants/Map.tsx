@@ -3,19 +3,21 @@ import L from 'leaflet';
 
 import { MapContainer, Marker, Popup, TileLayer, GeoJSON } from 'react-leaflet';
 
+import { Icon, DivIcon, point } from 'leaflet';
+
 import 'leaflet/dist/leaflet.css';
 
 import { getData, convertToGeoJSON } from './_map';
 
 import MarkerClusterGroup from 'react-leaflet-cluster'
 
-var customIcon: L.Icon = L.icon({
+var customIcon: Icon = new Icon({
     iconUrl: 'marker.png',
     iconSize: [35, 50],
 });
 
 function createMarkers(geoJsonData: any, markers: any[]) {
-    var greenIcon = L.icon({
+    var greenIcon = new Icon({
         iconUrl: 'marker.png',
         iconSize: [35, 50],
     });
@@ -38,6 +40,14 @@ function createMarkers(geoJsonData: any, markers: any[]) {
     }
 }
 
+const createClusterCustomIcon = function (cluster: any) {
+    return new DivIcon({
+        html: `<span class="cluster-icon">${cluster.getChildCount()}</span>`,
+        className: "custom-marker-cluster",
+        iconSize: point(33, 33, true)
+    });
+};
+
 export default function Map() {
     const [geoJsonData, setGeoJsonData] = useState<any>(null);
     const markers: any[] = [];
@@ -52,9 +62,9 @@ export default function Map() {
             }
         };
         fetchData();
+        createMarkers(geoJsonData, markers);
     }, []);
 
-    createMarkers(geoJsonData, markers);
 
     return (
         <MapContainer center={[-21.1151, 55.5364]} style={{ height: "100vh" }} zoom={10} scrollWheelZoom={true}>
@@ -63,7 +73,9 @@ export default function Map() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {geoJsonData && <GeoJSON data={geoJsonData} />}
-            {markers.length > 0 && <MarkerClusterGroup chunkedLoading>
+            {markers.length > 0 && <MarkerClusterGroup
+            chunkedLoading
+            iconCreateFunction={createClusterCustomIcon}>
                 {markers.map((marker) => (
                     console.log(marker),
                     <Marker key={marker.index} position={[marker.lat, marker.lng]} icon={customIcon}>
