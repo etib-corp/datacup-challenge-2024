@@ -7,6 +7,13 @@ import 'leaflet/dist/leaflet.css';
 
 import { getData, convertToGeoJSON } from './_map';
 
+import MarkerClusterGroup from 'react-leaflet-cluster'
+
+var customIcon: L.Icon = L.icon({
+    iconUrl: 'marker.png',
+    iconSize: [35, 50],
+});
+
 function createMarkers(geoJsonData: any, markers: any[]) {
     var greenIcon = L.icon({
         iconUrl: 'marker.png',
@@ -19,9 +26,12 @@ function createMarkers(geoJsonData: any, markers: any[]) {
                 const [lng, lat] = feature.geometry.coordinates;
 
                 markers.push(
-                    <Marker key={index} position={[lat, lng]} icon={greenIcon}>
-                        <Popup>{feature.geometry.image_name}</Popup>
-                    </Marker>
+                    {
+                        index: index,
+                        lat: lat,
+                        lng: lng,
+                        name: feature.geometry.image_name,
+                    }
                 );
             }
         });
@@ -30,7 +40,7 @@ function createMarkers(geoJsonData: any, markers: any[]) {
 
 export default function Map() {
     const [geoJsonData, setGeoJsonData] = useState<any>(null);
-    const markers :any[] = [];
+    const markers: any[] = [];
 
     useEffect(() => {
         const fetchData = async () => {
@@ -52,7 +62,16 @@ export default function Map() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {geoJsonData && <GeoJSON data={geoJsonData} />}
-            {markers}
+            {markers.length > 0 && <MarkerClusterGroup chunkedLoading>
+                {markers.map((marker) => (
+                    console.log(marker),
+                    <Marker key={marker.index} position={[marker.lat, marker.lng]} icon={customIcon}>
+                        <Popup>
+                            <span>{marker.name}</span>
+                        </Popup>
+                    </Marker>
+                ))}
+            </MarkerClusterGroup>}
         </MapContainer>
     );
 }
