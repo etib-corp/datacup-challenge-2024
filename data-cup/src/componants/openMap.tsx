@@ -17,7 +17,7 @@ interface MapProps {
 const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ type: '', keyword: '' }); // État pour les filtres
+  const [filters, setFilters] = useState({ type: '', keyword: '' });
   const [vectorSource, setVectorSource] = useState<VectorSource | null>(null);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
 
@@ -25,13 +25,13 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
     if (!mapRef.current) return;
 
     const source = new VectorSource();
-    setVectorSource(source); // Stocker la source vectorielle dans l'état
+    setVectorSource(source);
 
     const addMarkers = (markers: any) => {
       markers.forEach((marker: any) => {
         const feature = new Feature({
           geometry: new Point(fromLonLat(marker.coordinates)),
-          properties: marker.properties, // Ajouter des propriétés pour le filtrage
+          properties: marker.properties,
         });
         if (marker.iconUrl) {
           feature.setStyle(
@@ -53,7 +53,7 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
           const geojson = convertToGeoJSON(data);
           const updatedMarkers = geojson.features.map((feature: any) => ({
             coordinates: feature.geometry.coordinates,
-            properties: feature.properties, // Propriétés pour le filtrage
+            properties: feature.properties,
             iconUrl: "marker.png",
           }));
           addMarkers(updatedMarkers);
@@ -114,7 +114,6 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
     return () => map.setTarget(undefined);
   }, [center, zoom]);
 
-  // Fonction pour appliquer les filtres
   const applyFilters = () => {
     if (vectorSource) {
       const features = vectorSource.getFeatures();
@@ -125,7 +124,6 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
         const matchesKeyword =
           !filters.keyword || properties.name.includes(filters.keyword);
 
-        // Appliquer ou retirer le style basé sur les filtres
         if (matchesType && matchesKeyword) {
           feature.setStyle(
             new Style({
@@ -136,7 +134,7 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
             })
           );
         } else {
-          feature.setStyle(undefined); // Masquer les marqueurs qui ne correspondent pas
+          feature.setStyle(undefined);
         }
       });
     }
@@ -195,19 +193,30 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
             placeholder="Rechercher..."
           />
         </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>Importer une image :</label>
+        <button onClick={applyFilters} style={{ padding: '10px 20px', background: '#007BFF', color: '#fff', border: 'none', borderRadius: '4px' }}>
+          Appliquer
+        </button>
+        <div style={{ marginBottom: '10px', marginTop: '10px' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Importer une image :</label>
           <input
             type="file"
             accept="image/*"
             onChange={handleImageUpload}
-            style={{ display: 'block', marginTop: '5px' }}
+            style={{
+              display: 'block',
+              padding: '10px',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              backgroundColor: '#f9f9f9',
+              cursor: 'pointer',
+              transition: 'background-color 0.3s ease',
+              fontSize: '14px',
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#eaeaea')}
+            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#f9f9f9')}
           />
         </div>
-        <button onClick={sendImage}> Send </button>
-        <button onClick={applyFilters} style={{ padding: '10px 20px', background: '#007BFF', color: '#fff', border: 'none', borderRadius: '4px' }}>
-          Appliquer
-        </button>
+        <button onClick={sendImage} style={{ padding: '10px 20px', background: '#007BFF', color: '#fff', border: 'none', borderRadius: '4px' }}> Publier </button>
       </div>
 
       <div style={{ flex: 1, position: 'relative' }}>
@@ -247,13 +256,12 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
 const spinnerStyle: React.CSSProperties = {
   width: "40px",
   height: "40px",
-  border: "4px solid rgba(0, 0, 0, 0.2)", // Couleur de fond
-  borderTop: "4px solid #000", // Couleur principale
+  border: "4px solid rgba(0, 0, 0, 0.2)",
+  borderTop: "4px solid #000",
   borderRadius: "50%",
   animation: "spin 1s linear infinite",
 };
 
-// Animation CSS
 const spinnerKeyframes = `
 @keyframes spin {
   0% {
@@ -265,7 +273,6 @@ const spinnerKeyframes = `
 }
 `;
 
-// Injecter les styles dans le DOM
 const styleSheet = document.createElement("style");
 styleSheet.type = "text/css";
 styleSheet.innerText = spinnerKeyframes;
