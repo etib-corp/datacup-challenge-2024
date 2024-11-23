@@ -6,7 +6,9 @@ fastify.get("/", (request, reply) => {
     reply.send({ hello: "world" });
 })
 
-fastify.register(routes_images, { prefix: '/images' });
+fastify.register(routes_images.get, { prefix: '/images' });
+fastify.register(routes_images.post, { prefix: '/images' });
+fastify.register(routes_images.get_image, { prefix: '/image' });
 
 fastify.listen({port: process.env.PORT}, (err, address) => {
     if (err) {
