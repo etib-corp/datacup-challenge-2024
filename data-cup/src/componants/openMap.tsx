@@ -1,12 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Map, View } from 'ol';
-import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
-import { OSM } from 'ol/source';
-import { fromLonLat } from 'ol/proj';
-import { Vector as VectorSource, Cluster } from 'ol/source';
-import { Feature } from 'ol';
-import { Point } from 'ol/geom';
+
 import { Style, Icon, Text, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
+import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
+import { Vector as VectorSource, Cluster, OSM } from 'ol/source';
+import { Map, View, Feature, Overlay } from 'ol';
+import { fromLonLat } from 'ol/proj';
+import { Point } from 'ol/geom';
+
 import { convertToGeoJSON, getData } from './_map';
 
 interface MapProps {
@@ -20,6 +20,7 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
   const [filters, setFilters] = useState({ type: '', keyword: '' });
   const [vectorSource, setVectorSource] = useState<VectorSource | null>(null);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [displayPopup, setDisplayPopup] = useState(false);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -43,6 +44,10 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
             })
           );
         }
+        feature.addEventListener('click', function () {
+          console.log('Feature clicked:', feature.get('properties'));
+          setDisplayPopup(true);
+        });
         source.addFeature(feature);
       });
     };
@@ -109,10 +114,34 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
         center: fromLonLat(center),
         zoom: zoom,
       }),
+      overlays: [],
+    });
+
+    var container = document.getElementById("popup") || document.createElement("div");
+    var content = document.getElementById("popup-content") || document.createElement("div");
+    var overlay = new Overlay({
+      element: container,
+      autoPan: true
+    });
+
+    map.on('click', function (e) {
+      var pixel = map.getEventPixel(e.originalEvent);
+      map.forEachFeatureAtPixel(pixel, function (feature) {
+        var coodinate = e.coordinate;
+        var name = feature.get('name');
+        var time = feature.get('time');
+        content.innerHTML =
+          '<p>Name:' + name + '</p>' +
+          '<p>Time:' + time + '</p>' +
+          '<p>Coordinate:' + coodinate + '</p>';
+        overlay.setPosition(coodinate);
+        map.addOverlay(overlay);
+      });
     });
 
     return () => map.setTarget(undefined);
   }, [center, zoom]);
+
 
   const applyFilters = () => {
     if (vectorSource) {
@@ -150,9 +179,9 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
   const sendImage = () => {
     if (uploadedImage) {
       const reader = new FileReader();
-  
+
       reader.readAsDataURL(uploadedImage);
-  
+
       reader.onload = () => {
         if (reader.result && typeof reader.result === 'string') {
           const base64String = reader.result.split(',')[1];
@@ -166,7 +195,6 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
       };
     }
   };
-  
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
@@ -248,6 +276,23 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
           </div>
         )}
         <div ref={mapRef} style={{ height: '100vh', visibility: loading ? 'hidden' : 'visible' }} />
+        {displayPopup && (
+          <div
+            id="popup"
+            style={{
+              position: 'absolute',
+              backgroundColor: 'white',
+              padding: '10px',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+              borderRadius: '4px',
+              zIndex: 1000,
+            }}
+          >
+            <div id="popup-content">
+              <p>Popup content</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
