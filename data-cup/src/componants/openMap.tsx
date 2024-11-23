@@ -17,16 +17,21 @@ interface MapProps {
 const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({ type: '', keyword: '' }); // État pour les filtres
+  const [vectorSource, setVectorSource] = useState<VectorSource | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
 
   useEffect(() => {
     if (!mapRef.current) return;
 
-    const vectorSource = new VectorSource();
+    const source = new VectorSource();
+    setVectorSource(source); // Stocker la source vectorielle dans l'état
 
     const addMarkers = (markers: any) => {
       markers.forEach((marker: any) => {
         const feature = new Feature({
           geometry: new Point(fromLonLat(marker.coordinates)),
+          properties: marker.properties, // Ajouter des propriétés pour le filtrage
         });
         if (marker.iconUrl) {
           feature.setStyle(
@@ -38,26 +43,27 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
             })
           );
         }
-        vectorSource.addFeature(feature);
+        source.addFeature(feature);
       });
     };
 
     getData()
-    .then((data) => {
-      if (data) {
-        const geojson = convertToGeoJSON(data);
-        const updatedMarkers = geojson.features.map((feature: any) => ({
-          coordinates: feature.geometry.coordinates,
-          iconUrl: "marker.png",
-        }));
-        addMarkers(updatedMarkers);
-      }
-    })
-    .finally(() => setLoading(false));
+      .then((data) => {
+        if (data) {
+          const geojson = convertToGeoJSON(data);
+          const updatedMarkers = geojson.features.map((feature: any) => ({
+            coordinates: feature.geometry.coordinates,
+            properties: feature.properties, // Propriétés pour le filtrage
+            iconUrl: "marker.png",
+          }));
+          addMarkers(updatedMarkers);
+        }
+      })
+      .finally(() => setLoading(false));
 
     const clusterSource = new Cluster({
       distance: 40,
-      source: vectorSource,
+      source: source,
     });
 
     const clusterLayer = new VectorLayer({
@@ -108,56 +114,161 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
     return () => map.setTarget(undefined);
   }, [center, zoom]);
 
+  // Fonction pour appliquer les filtres
+  const applyFilters = () => {
+    if (vectorSource) {
+      const features = vectorSource.getFeatures();
+      features.forEach((feature) => {
+        const properties = feature.get('properties');
+        const matchesType =
+          !filters.type || properties.type === filters.type;
+        const matchesKeyword =
+          !filters.keyword || properties.name.includes(filters.keyword);
+
+        // Appliquer ou retirer le style basé sur les filtres
+        if (matchesType && matchesKeyword) {
+          feature.setStyle(
+            new Style({
+              image: new Icon({
+                src: 'marker.png',
+                scale: 0.1,
+              }),
+            })
+          );
+        } else {
+          feature.setStyle(undefined); // Masquer les marqueurs qui ne correspondent pas
+        }
+      });
+    }
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setUploadedImage(event.target.files[0]);
+      console.log('Image uploaded:', event.target.files[0]);
+    }
+  };
+
+  const sendImage = () => {
+    if (uploadedImage) {
+      const reader = new FileReader();
+  
+      reader.readAsDataURL(uploadedImage);
+  
+      reader.onload = () => {
+        if (reader.result && typeof reader.result === 'string') {
+          const base64String = reader.result.split(',')[1];
+          console.log(base64String);
+        } else {
+          console.error("Erreur : Le résultat de la lecture n'est pas une chaîne.");
+        }
+      };
+      reader.onerror = () => {
+        console.error('Erreur lors de la lecture du fichier.');
+      };
+    }
+  };
+  
+
   return (
-    <div style={{ position: "relative", height: "100vh" }}>
-      {loading && (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "rgba(255, 255, 255, 0.8)",
-            zIndex: 1000,
-          }}
-        >
-          <div style={spinnerStyle}></div>
-          <p>Chargement en cours...</p>
+    <div style={{ display: 'flex', height: '100vh' }}>
+      <div style={{ width: '300px', padding: '10px', background: '#f7f7f7', borderRight: '1px solid #ddd' }}>
+        <h3>Filtres</h3>
+        <div style={{ marginBottom: '10px' }}>
+          <label>Type : </label>
+          <select
+            value={filters.type}
+            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+          >
+            <option value="">Tous</option>
+            <option value="restaurant">Restaurant</option>
+            <option value="park">Parc</option>
+            <option value="shop">Magasin</option>
+          </select>
         </div>
-      )}
-      <div ref={mapRef} style={{ height: "100%", visibility: loading ? "hidden" : "visible" }} />
+        <div style={{ marginBottom: '10px' }}>
+          <label>Mot-clé : </label>
+          <input
+            type="text"
+            value={filters.keyword}
+            onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
+            placeholder="Rechercher..."
+          />
+        </div>
+        <div style={{ marginBottom: '10px' }}>
+          <label>Importer une image :</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            style={{ display: 'block', marginTop: '5px' }}
+          />
+        </div>
+        <button onClick={sendImage}> Send </button>
+        <button onClick={applyFilters} style={{ padding: '10px 20px', background: '#007BFF', color: '#fff', border: 'none', borderRadius: '4px' }}>
+          Appliquer
+        </button>
+      </div>
+
+      <div style={{ flex: 1, position: 'relative' }}>
+        {loading && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                border: '4px solid rgba(0, 0, 0, 0.2)',
+                borderTop: '4px solid #000',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+              }}
+            ></div>
+          </div>
+        )}
+        <div ref={mapRef} style={{ height: '100vh', visibility: loading ? 'hidden' : 'visible' }} />
+      </div>
     </div>
   );
 };
 
 const spinnerStyle: React.CSSProperties = {
-    width: "40px",
-    height: "40px",
-    border: "4px solid rgba(0, 0, 0, 0.2)",
-    borderTop: "4px solid #000",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
-    marginRight: "20px",
-  };
-  
-  const spinnerKeyframes = `
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
+  width: "40px",
+  height: "40px",
+  border: "4px solid rgba(0, 0, 0, 0.2)", // Couleur de fond
+  borderTop: "4px solid #000", // Couleur principale
+  borderRadius: "50%",
+  animation: "spin 1s linear infinite",
+};
+
+// Animation CSS
+const spinnerKeyframes = `
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
   }
-  `;
-  
-  const styleSheet = document.createElement("style");
-  styleSheet.type = "text/css";
-  styleSheet.innerText = spinnerKeyframes;
-  document.head.appendChild(styleSheet);
+  100% {
+    transform: rotate(360deg);
+  }
+}
+`;
+
+// Injecter les styles dans le DOM
+const styleSheet = document.createElement("style");
+styleSheet.type = "text/css";
+styleSheet.innerText = spinnerKeyframes;
+document.head.appendChild(styleSheet);
 
 export default MapComponent;
