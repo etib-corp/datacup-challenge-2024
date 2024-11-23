@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Map, View } from 'ol';
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
 import { OSM } from 'ol/source';
@@ -16,6 +16,7 @@ interface MapProps {
 
 const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -41,7 +42,8 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
       });
     };
 
-    getData().then((data) => {
+    getData()
+    .then((data) => {
       if (data) {
         const geojson = convertToGeoJSON(data);
         const updatedMarkers = geojson.features.map((feature: any) => ({
@@ -50,7 +52,8 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
         }));
         addMarkers(updatedMarkers);
       }
-    });
+    })
+    .finally(() => setLoading(false));
 
     const clusterSource = new Cluster({
       distance: 40,
@@ -105,7 +108,56 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom }) => {
     return () => map.setTarget(undefined);
   }, [center, zoom]);
 
-  return <div ref={mapRef} style={{ height: "100vh" }} />;
+  return (
+    <div style={{ position: "relative", height: "100vh" }}>
+      {loading && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(255, 255, 255, 0.8)",
+            zIndex: 1000,
+          }}
+        >
+          <div style={spinnerStyle}></div>
+          <p>Chargement en cours...</p>
+        </div>
+      )}
+      <div ref={mapRef} style={{ height: "100%", visibility: loading ? "hidden" : "visible" }} />
+    </div>
+  );
 };
+
+const spinnerStyle: React.CSSProperties = {
+    width: "40px",
+    height: "40px",
+    border: "4px solid rgba(0, 0, 0, 0.2)",
+    borderTop: "4px solid #000",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
+    marginRight: "20px",
+  };
+  
+  const spinnerKeyframes = `
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  `;
+  
+  const styleSheet = document.createElement("style");
+  styleSheet.type = "text/css";
+  styleSheet.innerText = spinnerKeyframes;
+  document.head.appendChild(styleSheet);
 
 export default MapComponent;
